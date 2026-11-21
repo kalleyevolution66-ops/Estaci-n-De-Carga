@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Centro de Control SCADA | Estación de Carga EV</title>
+  <style>
+    :root {
+      --primary: #1E3A8A;
+      --primary-light: #3B82F6;
+      --accent: #2563EB;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding-bottom: 50px;
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 20px 24px;
+    }
+
+    /* Header SCADA */
+    .header-bar {
+      background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+      color: white;
+      padding: 20px 28px;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 15px rgba(30, 58, 138, 0.18);
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .header-info h1 {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-info p {
+      font-size: 0.92rem;
+      opacity: 0.9;
+      margin-top: 3px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .select-estacion {
+      background: white;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: #0284C7; color: white; }
+    .btn-success { background: #10B981; color: white; }
+    .btn-secondary { background: rgba(255, 255, 255, 0.2); color: white; }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.3); }
+
+    .cargadores-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.15);
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+    .cargadores-group label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-right: 4px;
+      text-transform: uppercase;
+    }
+    .cargadores-group select {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 700;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* Tarjetas KPI */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+      position: relative;
+    }
+
+    .kpi-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .kpi-value {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .kpi-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* Alerta de servicio */
+    .alert-box {
+      background: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      color: #991B1B;
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      margin-bottom: 22px;
+      display: none;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .alert-box.active { display: flex; }
+    .alert-icon { font-size: 1.5rem; }
+    .alert-title { font-weight: 800; margin-bottom: 2px; }
+    .alert-desc { font-size: 0.9rem; }
+
+    /* Sección de Monitoreo Dinámico */
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      margin-bottom: 24px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .time-slider-wrapper {
+      background: #F1F5F9;
+      border-radius: 10px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      margin-bottom: 18px;
+    }
+
+    .time-badge {
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      font-size: 1.1rem;
+      padding: 6px 14px;
+      border-radius: 8px;
+      min-width: 90px;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(37,99,235,0.2);
+    }
+
+    .time-slider {
+      flex: 1;
+      height: 8px;
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    /* Bahías de Carga */
+    .bays-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 16px;
+    }
+
+    .bay-card {
+      background: #FFFFFF;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.15s ease;
+    }
+
+    .bay-card.bay-active { border-color: #3B82F6; background: #F8FAFC; }
+    .bay-card.bay-idle { border-color: #10B981; }
+
+    .bay-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .bay-name {
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    .bay-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .badge-idle { background: #DCFCE7; color: #15803D; }
+    .badge-busy { background: #DBEAFE; color: #1D4ED8; }
+
+    .bay-meta {
+      font-size: 0.86rem;
+      margin: 4px 0;
+      display: flex;
+      justify-content: space-between;
+    }
+    .bay-meta-label { color: var(--text-muted); }
+    .bay-meta-val { font-weight: 700; }
+
+    .progress-bar-bg {
+      background: #E2E8F0;
+      border-radius: 6px;
+      height: 10px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-bar-fill {
+      background: #2563EB;
+      height: 100%;
+      width: 0%;
+      border-radius: 6px;
+      transition: width 0.1s ease;
+    }
+
+    /* Diagrama de Gantt */
+    .gantt-container {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #FAFAFA;
+      padding: 10px;
+    }
+
+    /* Tabla de Flota */
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 12px;
+    }
+    .audit-table th {
+      background: #F1F5F9;
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 1.5px solid var(--border);
+    }
+    .audit-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .audit-table tr:hover td { background: #F8FAFC; }
+
+    /* Modales */
+    .modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(2px);
+    }
+    .modal-backdrop.active { display: flex; }
+
+    .modal-box {
+      background: white;
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+    .form-group input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .form-group input:focus { border-color: var(--primary-light); }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header SCADA -->
+    <header class="header-bar">
+      <div class="header-info">
+        <h1 id="tit-estacion">⚡ Estación de Carga "Norte"</h1>
+        <p>Centro SCADA de Supervisión Energética y Despacho Dinámico de Vehículos Eléctricos</p>
+      </div>
+      <div class="header-controls">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase;">Sede:</label>
+          <select id="select-estacion" class="select-estacion" onchange="cambiarEstacion()"></select>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModalEstacion()">🏢 + Estación</button>
+        <button class="btn btn-success" onclick="abrirModalVehiculo()">➕ + Vehículo</button>
+        <button class="btn btn-secondary" onclick="restablecerFlota()">🔄 Reset</button>
+        <div class="cargadores-group">
+          <label>Bahías:</label>
+          <select id="select-cargadores" onchange="cambiarCargadores()">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- Alerta de Nivel de Servicio -->
+    <div id="alert-box" class="alert-box">
+      <div class="alert-icon">🚨</div>
+      <div>
+        <div class="alert-title">Alerta de Nivel de Servicio (Demora Excesiva)</div>
+        <div id="alert-desc" class="alert-desc"></div>
+      </div>
+    </div>
+
+    <!-- Indicadores KPI -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-title">⏱️ Espera Total Acumulada</div>
+        <div id="kpi-espera" class="kpi-value" style="color: var(--danger);">0.0 h</div>
+        <div id="kpi-espera-sub" class="kpi-sub">0 minutos en fila</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">⚡ Energía Entregada</div>
+        <div id="kpi-energia" class="kpi-value" style="color: var(--accent);">0.0 kWh</div>
+        <div class="kpi-sub">Demanda total atendida</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">💰 Facturación Total</div>
+        <div id="kpi-ingresos" class="kpi-value" style="color: var(--success);">$0</div>
+        <div id="kpi-ingresos-sub" class="kpi-sub">Tarifa regulada</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">🔥 Reto: Hora Mayor Ocupación</div>
+        <div id="kpi-pico" class="kpi-value" style="color: var(--warning); font-size: 1.5rem;">--</div>
+        <div id="kpi-pico-sub" class="kpi-sub">Pico de demanda simultánea</div>
+      </div>
+    </section>
+
+    <!-- Monitoreo en Tiempo Real (Bahías + Deslizador) -->
+    <section class="section-card">
+      <div class="section-header">
+        <div class="section-title">🔌 Bahías de Carga y Monitoreo en Tiempo Real</div>
+        <div style="font-size: 0.88rem; color: var(--text-muted);">
+          Mueve el deslizador para ver la evolución del llenado de baterías y el cursor temporal.
+        </div>
+      </div>
+
+      <div class="time-slider-wrapper">
+        <span style="font-size: 0.88rem; font-weight: 700; color: var(--text-muted);">HORA INSPECCIÓN:</span>
+        <input type="range" id="time-slider" class="time-slider" min="8" max="12" step="0.25" value="8" oninput="alMoverSlider(this.value)">
+        <div id="time-badge" class="time-badge">08:00</div>
+      </div>
+
+      <div id="bays-grid" class="bays-grid"></div>
+    </section>
+
+    <!-- Diagrama de Gantt -->
+    <section class="section-card">
+      <div class="section-header">
+        <div class="section-title">📅 Programación y Despacho Temporal (Diagrama de Gantt)</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">
+          <span style="color: #2563EB; font-weight: 700;">■</span> Carga Activa &nbsp;|&nbsp; 
+          <span style="color: #94A3B8; font-weight: 700;">▦</span> Fila de Espera &nbsp;|&nbsp; 
+          <span style="color: #DC2626; font-weight: 700;">┆</span> Aguja Horaria
+        </div>
+      </div>
+
+      <div id="gantt-container" class="gantt-container"></div>
+    </section>
+
+    <!-- Tabla Detallada de Auditoría -->
+    <section class="section-card">
+      <div class="section-title" style="margin-bottom: 12px;">📊 Registro Detallado de Despacho (Flota de Vehículos)</div>
+      <div style="overflow-x: auto;">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Placa</th>
+              <th>Nombre / Modelo</th>
+              <th>Llegada</th>
+              <th>Bahía Asignada</th>
+              <th>Hora Inicio</th>
+              <th>Hora Fin</th>
+              <th>Espera</th>
+              <th>Energía Demandada</th>
+              <th>Costo Total</th>
+            </tr>
+          </thead>
+          <tbody id="audit-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal Nueva Estación -->
+  <div id="modal-estacion" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span>🏢 Nueva Estación de Carga</span>
+        <button class="modal-close" onclick="cerrarModales()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Nombre de la Sede / Estación:</label>
+        <input type="text" id="m-est-nombre" value="Sur - Terminal">
+      </div>
+      <div class="form-group">
+        <label>Potencia Nominal (kW por cargador):</label>
+        <input type="number" id="m-est-potencia" value="20" step="1">
+      </div>
+      <div class="form-group">
+        <label>Tarifa Regulada ($ COP / kWh):</label>
+        <input type="number" id="m-est-precio" value="1600" step="50">
+      </div>
+      <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px;" onclick="guardarNuevaEstacion()">Crear e Incorporar a la Red</button>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo Vehículo -->
+  <div id="modal-vehiculo" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span>➕ Registrar Vehículo a la Fila</span>
+        <button class="modal-close" onclick="cerrarModales()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Nombre / Modelo / Conductor:</label>
+        <input type="text" id="m-veh-nombre" value="Tesla Model 3">
+      </div>
+      <div class="form-group">
+        <label>Placa del Vehículo:</label>
+        <input type="text" id="m-veh-placa" value="E">
+      </div>
+      <div class="form-group">
+        <label>Hora de Llegada (0.0 a 24.0 h):</label>
+        <input type="number" id="m-veh-llegada" value="10.0" step="0.25">
+      </div>
+      <div class="form-group">
+        <label>Energía Solicitada (kWh):</label>
+        <input type="number" id="m-veh-kwh" value="15.0" step="1">
+      </div>
+      <button class="btn btn-success" style="width: 100%; justify-content: center; padding: 10px;" onclick="guardarNuevoVehiculo()">Ingresar a Cola de Carga</button>
+    </div>
+  </div>
+
+  <script>
+    // Paleta de colores para vehículos
+    const COLORES_VEHICULOS = [
+      "#2563EB", "#10B981", "#8B5CF6", "#F59E0B", "#EC4899", "#06B6D4", "#6366F1", "#14B8A6"
+    ];
+
+    let estadoGlobal = null;
+    let horaActualSlider = 8.0;
+
+    // Inicializar app
+    async function cargarEstado() {
+      try {
+        const res = await fetch("/api/estado");
+        estadoGlobal = await res.json();
+        renderizarTodo();
+      } catch (err) {
+        console.error("Error al cargar estado:", err);
+      }
+    }
+
+    function renderizarTodo() {
+      if (!estadoGlobal) return;
+
+      const { estaciones, estacion_activa, num_cargadores, resultado, pico } = estadoGlobal;
+
+      // 1. Selector de Estaciones
+      const selEst = document.getElementById("select-estacion");
+      selEst.innerHTML = "";
+      estaciones.forEach(nombre => {
+        const opt = document.createElement("option");
+        opt.value = nombre;
+        opt.textContent = nombre;
+        if (nombre === estacion_activa) opt.selected = true;
+        selEst.appendChild(opt);
+      });
+
+      document.getElementById("tit-estacion").textContent = `⚡ Estación de Carga "${estacion_activa}"`;
+      document.getElementById("select-cargadores").value = num_cargadores;
+
+      // 2. Indicadores KPI
+      const esperaTotal = resultado.espera_total;
+      const elEspera = document.getElementById("kpi-espera");
+      elEspera.textContent = `${esperaTotal.toFixed(1)} h`;
+      elEspera.style.color = esperaTotal > 0 ? "var(--danger)" : "var(--success)";
+      document.getElementById("kpi-espera-sub").textContent = `${Math.round(esperaTotal * 60)} minutos en fila acumulados`;
+
+      document.getElementById("kpi-energia").textContent = `${resultado.energia_total.toFixed(1)} kWh`;
+      document.getElementById("kpi-ingresos").textContent = `$${resultado.ingresos_totales.toLocaleString("es-CO")}`;
+      document.getElementById("kpi-ingresos-sub").textContent = `Tarifa: $${resultado.precio.toLocaleString("es-CO")} COP / kWh`;
+
+      document.getElementById("kpi-pico").textContent = pico.intervalo_pico;
+      document.getElementById("kpi-pico-sub").textContent = `${pico.max_vehiculos_simultaneos} de ${num_cargadores} bahías activas (${pico.porcentaje_ocupacion_pico}%)`;
+
+      // 3. Alerta de servicio
+      const alertBox = document.getElementById("alert-box");
+      const alertDesc = document.getElementById("alert-desc");
+      if (resultado.alertas_espera && resultado.alertas_espera.length > 0) {
+        const nombres = resultado.alertas_espera.map(v => `${v.nombre || v.placa} (${v.espera.toFixed(1)} h)`).join(", ");
+        alertDesc.innerHTML = `Los vehículos <strong>${nombres}</strong> superan el umbral máximo de 1.0 hora de espera.<br>` +
+          `💡 <em>Recomendación de despacho:</em> Aumente a <strong>${Math.min(6, num_cargadores + 1)} bahías</strong> para eliminar el cuello de botella.`;
+        alertBox.classList.add("active");
+      } else {
+        alertBox.classList.remove("active");
+      }
+
+      // 4. Configurar límites del slider
+      const asigs = resultado.asignaciones;
+      const hMin = asigs.length > 0 ? Math.min(...asigs.map(v => v.llegada)) : 8.0;
+      const hMax = asigs.length > 0 ? Math.max(...asigs.map(v => v.hora_fin)) : 12.0;
+
+      const slider = document.getElementById("time-slider");
+      slider.min = hMin;
+      slider.max = hMax;
+      if (horaActualSlider < hMin || horaActualSlider > hMax) {
+        horaActualSlider = hMin;
+      }
+      slider.value = horaActualSlider;
+      actualizarBadgeHora(horaActualSlider);
+
+      // 5. Renderizar Bahías y Gantt
+      renderizarBahias(horaActualSlider);
+      renderizarGantt(resultado, hMin, hMax, horaActualSlider);
+
+      // 6. Renderizar Tabla de Auditoría
+      renderizarTabla(asigs, resultado.precio);
+    }
+
+    function actualizarBadgeHora(t) {
+      const hInt = Math.floor(t);
+      const mInt = Math.round((t - hInt) * 60);
+      document.getElementById("time-badge").textContent = `${String(hInt).padStart(2, "0")}:${String(mInt).padStart(2, "0")}`;
+    }
+
+    function alMoverSlider(val) {
+      horaActualSlider = parseFloat(val);
+      actualizarBadgeHora(horaActualSlider);
+      renderizarBahias(horaActualSlider);
+      actualizarAgujaGantt(horaActualSlider);
+    }
+
+    // Cálculo instantáneo de estado en cliente a 60 FPS
+    function renderizarBahias(t) {
+      const { resultado, num_cargadores } = estadoGlobal;
+      const asigs = resultado.asignaciones;
+      const pot = resultado.potencia;
+      const grid = document.getElementById("bays-grid");
+      grid.innerHTML = "";
+
+      for (let c = 1; c <= num_cargadores; c++) {
+        const v = asigs.find(item => item.cargador === c && item.hora_inicio <= t && t < item.hora_fin);
+        const card = document.createElement("div");
+        card.className = `bay-card ${v ? 'bay-active' : 'bay-idle'}`;
+
+        if (v) {
+          const transcurrido = t - v.hora_inicio;
+          const pct = Math.min(100, Math.max(0, (transcurrido / v.duracion) * 100));
+          const entregado = Math.min(v.kwh, transcurrido * pot);
+
+          card.innerHTML = `
+            <div>
+              <div class="bay-top">
+                <span class="bay-name">⚡ Bahía ${c}</span>
+                <span class="bay-badge badge-busy">Cargando (${v.placa})</span>
+              </div>
+              <div class="bay-meta">
+                <span class="bay-meta-label">Vehículo:</span>
+                <span class="bay-meta-val" style="color: #2563EB;">${v.nombre || v.placa} (${v.placa})</span>
+              </div>
+              <div class="bay-meta">
+                <span class="bay-meta-label">Energía:</span>
+                <span class="bay-meta-val">${entregado.toFixed(1)} / ${v.kwh.toFixed(1)} kWh</span>
+              </div>
+              <div class="bay-meta">
+                <span class="bay-meta-label">Fin Estimado:</span>
+                <span class="bay-meta-val">${v.hora_fin.toFixed(2)} h</span>
+              </div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; margin-top: 8px;">
+                <span>Batería</span>
+                <span style="color: #2563EB;">${pct.toFixed(1)}%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${pct}%;"></div>
+              </div>
+            </div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div>
+              <div class="bay-top">
+                <span class="bay-name">⚡ Bahía ${c}</span>
+                <span class="bay-badge badge-idle">Disponible</span>
+              </div>
+              <div class="bay-meta">
+                <span class="bay-meta-label">Estado:</span>
+                <span class="bay-meta-val" style="color: #10B981;">Libre para conectar</span>
+              </div>
+              <div class="bay-meta">
+                <span class="bay-meta-label">Potencia:</span>
+                <span class="bay-meta-val">${pot} kW</span>
+              </div>
+              <div class="bay-meta">
+                <span class="bay-meta-label">Flujo Activo:</span>
+                <span class="bay-meta-val">0.0 kW</span>
+              </div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; margin-top: 8px; color: var(--text-muted);">
+                <span>Bahía Libre</span>
+                <span>0.0%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+          `;
+        }
+        grid.appendChild(card);
+      }
+    }
+
+    // Renderizar Diagrama Gantt SVG
+    let ganttParams = null;
+
+    function renderizarGantt(resultado, hMin, hMax, tCursor) {
+      const container = document.getElementById("gantt-container");
+      const numCarg = resultado.num_cargadores;
+      const asigs = resultado.asignaciones;
+
+      const mIzq = 120, mDer = 40, mSup = 30, mInf = 40;
+      const altoFila = 48;
+      const anchoTotal = 980;
+      const altoTotal = mSup + (numCarg * altoFila) + mInf;
+      const durTotal = Math.max(1, hMax - hMin);
+      const anchoUtil = anchoTotal - mIzq - mDer;
+
+      ganttParams = { mIzq, mDer, mSup, mInf, altoFila, anchoTotal, altoTotal, durTotal, anchoUtil, hMin, hMax };
+
+      const xPos = h => mIzq + ((h - hMin) / durTotal) * anchoUtil;
+
+      let svg = `
+        <svg id="svg-gantt" width="100%" height="${altoTotal}" viewBox="0 0 ${anchoTotal} ${altoTotal}" style="font-family: inherit;">
+          <defs>
+            <pattern id="wait-hatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="8" stroke="#94A3B8" stroke-width="2.5" />
+              <rect x="0" y="0" width="8" height="8" fill="#F1F5F9" opacity="0.6"/>
+            </pattern>
+          </defs>
+      `;
+
+      // Guías de hora
+      const paso = durTotal <= 6 ? 1 : 2;
+      for (let h = Math.floor(hMin); h <= Math.ceil(hMax); h += paso) {
+        if (h >= hMin && h <= hMax) {
+          const x = xPos(h);
+          svg += `
+            <line x1="${x}" y1="${mSup}" x2="${x}" y2="${altoTotal - mInf}" stroke="#E2E8F0" stroke-width="1.2" stroke-dasharray="3 3"/>
+            <text x="${x}" y="${altoTotal - mInf + 20}" text-anchor="middle" font-size="11" font-weight="700" fill="#64748B">${String(h).padStart(2, "0")}:00</text>
+          `;
+        }
+      }
+
+      // Carriles de cargadores
+      for (let c = 1; c <= numCarg; c++) {
+        const y = mSup + (c - 1) * altoFila;
+        svg += `
+          <rect x="${mIzq}" y="${y + 4}" width="${anchoUtil}" height="${altoFila - 8}" fill="#F8FAFC" rx="6" stroke="#E2E8F0"/>
+          <text x="20" y="${y + altoFila / 2 + 4}" font-size="12" font-weight="800" fill="#1E293B">Bahía ${c}</text>
+        `;
+      }
+
+      // Bloques de vehículos
+      const placas = [...new Set(asigs.map(v => v.placa))].sort();
+      const colorMap = {};
+      placas.forEach((p, i) => colorMap[p] = COLORES_VEHICULOS[i % COLORES_VEHICULOS.length]);
+
+      asigs.forEach(v => {
+        const c = v.cargador;
+        const y = mSup + (c - 1) * altoFila;
+        const yBox = y + 7;
+        const hBox = altoFila - 14;
+
+        // Tramo de espera
+        if (v.espera > 0) {
+          const xArr = xPos(v.llegada);
+          const wEsp = xPos(v.hora_inicio) - xArr;
+          svg += `
+            <rect x="${xArr}" y="${yBox}" width="${wEsp}" height="${hBox}" fill="url(#wait-hatch)" stroke="#94A3B8" stroke-width="1.2" rx="4"/>
+          `;
+          if (wEsp > 35) {
+            svg += `<text x="${xArr + wEsp / 2}" y="${yBox + hBox / 2 + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="#334155">Esp. ${v.placa}</text>`;
+          }
+        }
+
+        // Bloque de carga
+        const xIni = xPos(v.hora_inicio);
+        const wCar = Math.max(16, xPos(v.hora_fin) - xIni);
+        const col = colorMap[v.placa] || "#2563EB";
+        const nom = v.nombre || v.placa;
+
+        svg += `<rect x="${xIni}" y="${yBox}" width="${wCar}" height="${hBox}" fill="${col}" rx="5" filter="drop-shadow(0 2px 3px rgba(0,0,0,0.12))"/>`;
+
+        let txt = `🚗 ${v.placa}`;
+        if (nom !== v.placa && wCar > 110) txt = `🚗 ${v.placa} - ${nom} (${v.kwh}k)`;
+        else if (wCar > 55) txt = `🚗 ${v.placa} (${v.kwh} kWh)`;
+
+        svg += `<text x="${xIni + wCar / 2}" y="${yBox + hBox / 2 + 4}" text-anchor="middle" font-size="11" font-weight="800" fill="#FFFFFF">${txt}</text>`;
+      });
+
+      // Aguja temporal
+      svg += `<g id="g-aguja"></g></svg>`;
+      container.innerHTML = svg;
+      actualizarAgujaGantt(tCursor);
+    }
+
+    function actualizarAgujaGantt(t) {
+      if (!ganttParams) return;
+      const g = document.getElementById("g-aguja");
+      if (!g) return;
+
+      const { mIzq, anchoUtil, durTotal, mSup, altoTotal, mInf, hMin, hMax } = ganttParams;
+      if (t < hMin || t > hMax) { g.innerHTML = ""; return; }
+
+      const x = mIzq + ((t - hMin) / durTotal) * anchoUtil;
+      const hInt = Math.floor(t);
+      const mInt = Math.round((t - hInt) * 60);
+      const strH = `${String(hInt).padStart(2, "0")}:${String(mInt).padStart(2, "0")}`;
+
+      g.innerHTML = `
+        <line x1="${x}" y1="${mSup - 8}" x2="${x}" y2="${altoTotal - mInf}" stroke="#DC2626" stroke-width="2.5" stroke-dasharray="4 2"/>
+        <rect x="${x - 26}" y="${mSup - 22}" width="52" height="18" rx="4" fill="#DC2626"/>
+        <text x="${x}" y="${mSup - 9}" text-anchor="middle" font-size="10" font-weight="800" fill="#FFFFFF">${strH}</text>
+      `;
+    }
+
+    function renderizarTabla(asigs, precio) {
+      const tbody = document.getElementById("audit-tbody");
+      tbody.innerHTML = "";
+      asigs.forEach(v => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${v.placa}</strong></td>
+          <td>${v.nombre || v.placa}</td>
+          <td>${v.llegada.toFixed(2)} h</td>
+          <td><span style="color: #2563EB; font-weight: 700;">Bahía ${v.cargador}</span></td>
+          <td>${v.hora_inicio.toFixed(2)} h</td>
+          <td>${v.hora_fin.toFixed(2)} h</td>
+          <td><span style="color: ${v.espera > 0 ? 'var(--danger)' : 'var(--success)'}; font-weight: 700;">${v.espera.toFixed(2)} h</span></td>
+          <td>${v.kwh.toFixed(1)} kWh</td>
+          <td><strong>$${(v.kwh * precio).toLocaleString("es-CO")}</strong></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Acciones de API
+    async function cambiarEstacion() {
+      const nombre = document.getElementById("select-estacion").value;
+      await fetch("/api/cambiar_estacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estacion: nombre })
+      });
+      await cargarEstado();
+    }
+
+    async function cambiarCargadores() {
+      const num = parseInt(document.getElementById("select-cargadores").value);
+      await fetch("/api/cargadores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ num_cargadores: num })
+      });
+      await cargarEstado();
+    }
+
+    async function restablecerFlota() {
+      await fetch("/api/restablecer", { method: "POST" });
+      await cargarEstado();
+    }
+
+    function abrirModalEstacion() { document.getElementById("modal-estacion").classList.add("active"); }
+    function abrirModalVehiculo() { document.getElementById("modal-vehiculo").classList.add("active"); }
+    function cerrarModales() {
+      document.getElementById("modal-estacion").classList.remove("active");
+      document.getElementById("modal-vehiculo").classList.remove("active");
+    }
+
+    async function guardarNuevaEstacion() {
+      const nombre = document.getElementById("m-est-nombre").value.trim();
+      const potencia = parseFloat(document.getElementById("m-est-potencia").value);
+      const precio = parseFloat(document.getElementById("m-est-precio").value);
+
+      if (!nombre || isNaN(potencia) || isNaN(precio) || potencia <= 0 || precio <= 0) {
+        alert("Por favor ingrese valores válidos.");
+        return;
+      }
+
+      await fetch("/api/nueva_estacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, potencia, precio })
+      });
+      cerrarModales();
+      await cargarEstado();
+    }
+
+    async function guardarNuevoVehiculo() {
+      const nombre = document.getElementById("m-veh-nombre").value.trim();
+      const placa = document.getElementById("m-veh-placa").value.trim().toUpperCase();
+      const llegada = parseFloat(document.getElementById("m-veh-llegada").value);
+      const kwh = parseFloat(document.getElementById("m-veh-kwh").value);
+
+      if (!placa || isNaN(llegada) || isNaN(kwh) || kwh <= 0) {
+        alert("Por favor complete los datos obligatorios.");
+        return;
+      }
+
+      await fetch("/api/nuevo_vehiculo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: nombre || `Vehículo ${placa}`, placa, llegada, kwh })
+      });
+      cerrarModales();
+      await cargarEstado();
+    }
+
+    // Carga inicial
+    cargarEstado();
+  </script>
+</body>
+</html>
