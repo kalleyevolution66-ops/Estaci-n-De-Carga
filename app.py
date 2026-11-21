@@ -542,7 +542,7 @@ def generar_gantt_svg_moderno(asignaciones, num_cargadores, h_min, h_max, t_curs
         if h_min <= h_tick <= h_max:
             xt = x_pos(h_tick)
             svg.append(f'<line x1="{xt}" y1="{margen_sup}" x2="{xt}" y2="{alto_total - margen_inf}" stroke="#E2E8F0" stroke-width="1.2" stroke-dasharray="3 3"/>')
-            svg.append(f'<text x="{xt}" y="{alto_total - margen_inf + 22}" text-anchor="middle" fill="#64748B" font-size="12px" font-weight="600">{h_tick:02d}:00</text>')
+            svg.append(f'<text x="{xt}" y="{alto_total - margen_inf + 22}" text-anchor="middle" fill="#64748B" font-size="12px" font-weight="600">{int(h_tick):02d}:00</text>')
         h_tick += paso_hora
 
     # Filas de cargadores con esquinas suaves
