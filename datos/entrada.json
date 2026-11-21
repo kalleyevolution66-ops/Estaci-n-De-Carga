@@ -1,0 +1,27 @@
+{
+  "estacion": "Norte",
+  "potencia": 10,
+  "precio": 1500,
+  "vehiculos": [
+    {
+      "placa": "A",
+      "llegada": 8,
+      "kwh": 20
+    },
+    {
+      "placa": "B",
+      "llegada": 8,
+      "kwh": 10
+    },
+    {
+      "placa": "C",
+      "llegada": 9,
+      "kwh": 30
+    },
+    {
+      "placa": "D",
+      "llegada": 9,
+      "kwh": 10
+    }
+  ]
+}
